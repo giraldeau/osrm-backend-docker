@@ -1,4 +1,4 @@
-FROM ubuntu:trusty
+FROM ubuntu:xenial
 MAINTAINER Alex Newman <alex@newman.pro>
 
 # Let the container know that there is no TTY
@@ -14,7 +14,7 @@ RUN apt-get -y update && apt-get install -y \
     libbz2-dev \
     libstxxl-dev \
     libstxxl-doc \
-    libstxxl1 \
+    libstxxl1v5 \
     libtbb-dev \
     libxml2-dev \
     libzip-dev \
@@ -34,10 +34,34 @@ RUN curl --silent -L https://github.com/Project-OSRM/osrm-backend/archive/v5.2.6
  && mv osrm-backend-5.2.6 /osrm-src \
  && cmake /osrm-src \
  && make \
+ && make install \
+ && ldconfig \
  && mv /osrm-src/profiles/car.lua profile.lua \
  && mv /osrm-src/profiles/lib/ lib \
  && echo "disk=/tmp/stxxl,25000,syscall" > .stxxl \
  && rm -rf /osrm-src
+
+RUN apt-get -y update && apt-get install -y \
+    build-essential \
+    qt5-qmake \
+    qtbase5-dev
+
+WORKDIR /tufao-build
+
+RUN git clone --depth 1 --single-branch -b 1.3.8 https://github.com/vinipsmaker/tufao.git
+RUN mv tufao tufao-src
+RUN cmake -DCMAKE_BUILD_TYPE=Release tufao-src/
+RUN make \
+ && make install \
+ && ldconfig
+
+WORKDIR /evnav-build
+
+RUN git clone --depth 1 --single-branch -b v0.2 https://github.com/giraldeau/evnav.git \
+ && mv evnav evnav-src \
+ && qmake -qt=qt5 evnav-src \
+ && make \
+ && make install
 
 # Cleanup --------------------------------
 
